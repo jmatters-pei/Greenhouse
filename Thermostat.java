@@ -23,10 +23,12 @@
  * Compiling and executing the program:
  * - Thermostat is not a standalone program and cannot be executed on its own. It is part of the Greenhouse simulation and is used in conjunction with other classes to create a greenhouse simulation. 
  * - To compile and execute the program, you would typically compile the entire Greenhouse simulation project.
- * - To compile and run the entire project, enter the folder where the folder Greenhouse is located and run the following command in the terminal:
+ * - To compile and run the entire program, enter the folder where the folder Greenhouse is located and run the following command in the terminal:
  *              1) javac Greenhouse\*.java
- *              2) java Greenhouse
- * Ensure that the plan file is present in the same directory as Greenhouse.java and named greenhouse_plan.txt. If there is no plan file present, the Greenhouse class will not have any events to schedule, and no thermostat toggling will occur when executing the program.
+ *              2) cd Greenhouse
+ *              3) java Greenhouse
+ * 
+ * Ensure that the plan file is present in the same directory as Greenhouse.java and named greenhouse_plan.txt. If there is no plan file present, the Greenhouse class will not have any events to schedule, and no door toggling will occur when executing the program.
  *
  * Classes:
  * - Thermostat:
@@ -62,6 +64,9 @@ public class Thermostat extends Event {
     public void action() {
         if (hasFailed) {
             System.out.println("Thermostat failed");
+            on = false; // turn off the thermostat if it has failed
+            stop(); // stop the thermostat from running if it has failed
+
         } 
         else {
             on = !on;

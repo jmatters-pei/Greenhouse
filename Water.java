@@ -22,10 +22,12 @@
  * Compiling and executing the program:
  * - Water is not a standalone program and cannot be executed on its own. It is part of the Greenhouse simulation and is used in conjunction with other classes to create a greenhouse simulation. 
  * - To compile and execute the program, you would typically compile the entire Greenhouse simulation project.
- * - To compile and run the entire project, enter the folder where the folder Greenhouse is located and run the following command in the terminal:
+ * - To compile and run the entire program, enter the folder where the folder Greenhouse is located and run the following command in the terminal:
  *              1) javac Greenhouse\*.java
- *              2) java Greenhouse
- * Ensure that the plan file is present in the same directory as Greenhouse.java and named greenhouse_plan.txt. If there is no plan file present, the Greenhouse class will not have any events to schedule, and no watering machine toggling will occur when executing the program.
+ *              2) cd Greenhouse
+ *              3) java Greenhouse
+ * 
+ * Ensure that the plan file is present in the same directory as Greenhouse.java and named greenhouse_plan.txt. If there is no plan file present, the Greenhouse class will not have any events to schedule, and no door toggling will occur when executing the program.
  *
  * Classes:
  * - Water:
@@ -52,7 +54,7 @@
 
 public class Water extends Event {
     private boolean on = false;
-    public Water(long initialDelay, long recuringDelay, int eventPriority) {
+    public Water(long initialDelay, long recurringDelay, int eventPriority) {
         super(initialDelay, recuringDelay, eventPriority);
     }
 

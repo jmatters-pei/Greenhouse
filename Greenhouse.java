@@ -16,33 +16,346 @@
  *      - imports necessary libraries for file reading, data structures, and user input handling.
  *      - implements the Runnable interface, allowing it to run on a separate thread.
  *      - defines a DataEntry class to hold event data while reading the plan file.
- *      - 
- * 
- * 
- * 
- * 
- * 
- * 
+ *             - DataEntry class has instance variables for event type, class name, initial delay, recurring delay, priority, and disabled status.
+ *      - Creates instance variables for the plan file name, a list of DataEntry objects, a map for priorities, a list of active events, and a thread for handling failure events.
+ *      - Creates a Greenhouse constructor that only takes the plan file name as an argument.
+ *      - Overrides the run method to start the greenhouse simulation. Som that the start method can be called by both run() and userComand restart() methods. 
+ *      - Defines a readPlan method to read the plan file and populate the plan and priorities data structures. 
+ *      - Posts a message indicating how many events were loaded and how many classes were disabled due to previous failures or an event unknown and ignored message.
+ *      - Defines a resolvePriority method to determine the priority of an event based on its class name and the priorities map.
+ *      - Defines a start method to initiate the greenhouse simulation, sets all hasFailed flags to false and clears all plans from prior runs (important when using the restart command), and then schedules events based on the plan and handling any errors that may happen. 
+ *             - Also contains a try catch block to provide a user friendly message if the plan file cannot be read.
+ *             - Checks for disabled events and skips scheduling them, and handles failed events by scheduling them on a separate thread.
+ *             - Uses reflection to dynamically create instances of event classes and start their threads, allowing for flexibility in adding new events without modifying the greenhouse code. This allows the user to add classes and only need to compile them rather than the entire greenhouse program.
+ *                        - Uses a try catch block to handle any exceptions that may occur during event creation, then marking the event as disabled, adding it to the permanent list of disabled entries, and stopping all threads before restarting the greenhouse if necessary.
+ *     - Defines a scheduleFailure method to schedule failure events on a separate thread.
+ *             - The failure thread sleeps for the specified initial delay, sets the hasFailed flag to true, and creates and rings a bell 5 times to indicate a failure and then prints a message indentifying which event failed.
+ *     - Defines a restart method to stop all active events, clear the list of active events, interrupt the failure thread if it is running, and then call the start method to restart the greenhouse.
+ *     - Defines a userCommand method to listen for user commands in the console to restart or quit the greenhouse. It creates and uses a Scanner to read user input. The only valid commands are "restart" and "quit". It checks for these commands and calls the appropriate method to restart or quit the greenhouse. If the command is not recognized, it prints a message to the console indicating that the command is unknown and provides instructions for restart or quit commands.
+ *     - Defines a main method to create a Greenhouse, start the greenhouse thread, and call the userCommand method to listen for user commands.
  * 
  * Particulars: 
+ * - The program is designed to be handle various scenarios including various failures. 
+ * - It provides clear feedback to the user about the state of the simulation and any problems.
+ * - The program is designed in a way that allows for new event classes to be added easily by creating and compiling a new class and adding its events to the plan file.
+ * 
+ * Input: 
+ * - Greenhouse_plan.txt file containing the events to be scheduled. The plan file must be placed in the same directory as Greenhouse.java and named greenhouse_plan.txt. 
+ *      - The plan file should contain entries for priorities, events, tests, and failures in this format (Each entry should be on a new line):
+ *          - priority= STRING className (or * for all), INTEGER priority (lower numbers indicate higher priority)
+ *          - event= STRING className, LONG initialDelay, LONG recurringDelay (use 0 for non-recurring events)
+ *          - test= STRING className, LONG initialDelay (tests are non-recurring)
+ *          - failed= STRING className, LONG initialDelay (failed events are non-recurring)
+ * 
  * Compiling and executing the program:
- * including example input data if required. 
+ * - To compile and run the entire program, enter the folder where the folder Greenhouse is located and run the following command in the terminal:
+ *              1) javac Greenhouse\*.java
+ *              2) cd Greenhouse
+ *              3) java Greenhouse
+ * 
+ * Ensure that the plan file is present in the same directory as Greenhouse.java and named greenhouse_plan.txt. If there is no plan file present, the Greenhouse class will not have any events to schedule, and no door toggling will occur when executing the program.
  * 
  * Classes:
- *   with descriptions. 
- * Instance Variables: 
- *   with descriptions.
+ * - Greenhouse: 
+ *     -The main class that orchestrates the greenhouse simulation, reading the plan file, scheduling events, and managing the simulation. 
+ * - DataEntry:
+ *     - A class within Greenhouse that holds the data for each event in the plan file, including type, class name, initial delay, recurring delay, priority, and disabled status.
+ * - Bell:
+ *    - Represents a bell that can be rung. It is used to indicate failures.
+ * - Door:
+ *    - Represents a door and can be opened and closed.
+ * - Event:
+ *    - An abstract superclass for events in the greenhouse simulation. It provides a common interface and functionality for scheduling and executing events.
+ * - Fan:
+ *    - Represents a fan and can be turned on and off.
+ * - Light:
+ *    - Represents a light that can be turned on and off.
+ * - Location:
+ *    - Represents the location of trays in the greenhouse. Trays can be moved between their original and their alternate locations. Accounts for differnt microclimates in the greenhouse.
+ * - Rotate:
+ *    - Represents the rotation of trays in the greenhouse. Trays can be oriented North-South or East-West. Helps plants grow straight up. 
+ * - Thermostat:
+ *    - Represents a thermostat that can be turned on or off. 
+ * - Water:
+ *    - Represents a watering machine that can be turned on or off. 
+ * - Window:
+ *    - Represents a window that can be opened and closed.
+ * 
+ * - Instance Variables:
+ *     - planFile (private final String): Holds the name of the plan file to be read.
+ *     - plan (private final List<DataEntry>): Holds the list of DataEntry objects representing the events to be scheduled.
+ *     - priorities (private final Map<String, Integer>): Holds class names and their priorities.
+ *     - activeEvents (private final List<Event>): Holds the list of active events that have been scheduled and are currently running.
+ *     - failureThread (private Thread): Holds the thread responsible for scheduling a failure event.
+ *     - disabledClasses (private final static Set<String>): Holds the set of classes that can be disabled, preventing scheduling of events that have failed or are not needed.
  */
 
-/**
- *The third comment block is the test plan. At its core, a test plan simply tells another person how the program actually worked during testing. In cases where there is no input, there is still often output, so you can still show exactly how the program should function. In programs with input, you can also describe various test cases, including those where incorrect data (or no data) is entered and what output should be expected. Finally, the test plan is a place to discuss limitations of your program and things that could be done to improve it. 
+ /** Test Plan
+ * Test Case 1:
+ * Description: This test case checks to see if the program runs correctly with the provided plan file in the format instructed by the assignment instructions. 
+ * 
+ * Input: greenhouse_plans.txt
+ *      Contents of greenhouse_plans.txt:
+ *          priority=*,10
+ *          priority=Light,5
+ *          priority=Bell,1
+ *          priority=Thermostat,2
+ *          event=Thermostat,1000,*
+ *          event=Light,1000,1000
+ *          priority=Water,5
+ *          event=Water,3000,5000
+ *          test=Bell,1000
+ *          failed=Thermostat,7000
+ *          event=Water,8000,5000
+ *          event=Fan,10000,2000
+ * 
+ * Expected Output (until the first failed attempt at turning on the fans):
+ *      Plan Loaded 7 events. 0 classes disabled due to previous failures.
+ *      If you wish to restart the greenhouse, type 'restart' and press enter.
+ *      If you wish to quit the greenhouse, type 'quit' and press enter.
+ *      Do not worry if restart/quit is typed across multiple lines, the greenhouse will restart or quit once the command is complete.
+ *      Thermostat turned ON
+ *      Light turned ON
+ *      ALARM!!!
+ *      Light turned OFF
+ *      Watering machine ON
+ *      Light turned ON
+ *      Light turned OFF
+ *      Light turned ON
+ *      Light turned OFF
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      Thermostat failed.
+ *      Light turned ON
+ *      Watering machine OFF
+ *      Watering machine ON
+ *      Light turned OFF
+ *      Light turned ON
+ *      Fan controls attempted. Fan controls are disabled because Thermostat has failed. Fan is OFF.
+ * 
+ * Actual Output (until the first failed attempt at turning on the fans):
+ *      Plan Loaded 7 events. 0 classes disabled due to previous failures.
+ *      If you wish to restart the greenhouse, type 'restart' and press enter.
+ *      If you wish to quit the greenhouse, type 'quit' and press enter.
+ *      Do not worry if restart/quit is typed across multiple lines, the greenhouse will restart or quit once the command is complete.
+ *      Thermostat turned ON
+ *      Light turned ON
+ *      ALARM!!!
+ *      Light turned OFF
+ *      Watering machine ON
+ *      Light turned ON
+ *      Light turned OFF
+ *      Light turned ON
+ *      Light turned OFF
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      Thermostat failed.
+ *      Light turned ON
+ *      Watering machine OFF
+ *      Watering machine ON
+ *      Light turned OFF
+ *      Light turned ON
+ *      Fan controls attempted. Fan controls are disabled because Thermostat has failed. Fan is OFF.
+ * 
+ * Explanation: The actual output should match the expected output and it does. Code executed successfully.
+ * 
+ * Test Case 2:
+ * Description: This test case checks if when new input is added to the greenhouse_plan.txt file if the program handles it correctly. 
+ * Note The input has: 
+ *      -additional class names with no corresponding class files
+ *      -additional class names with corresponding class files 
+ *      -non-standard event types (not event, test, failed, or priority)
+ *      -non-standard spacing
+ * 
+ * Input: greenhouse_plans.txt
+ *     Contents of greenhouse_plans.txt:
+ *          priority=*,10
+ *          priority=Light,5
+ *          priority=Bell,1
+ *          priority=Thermostat,2
+ *          event=Thermostat,1000,*
+ *          event=Light,1000,1000
+ *          priority=Water,5
+ *          event=Water,3000,5000
+ *          test=Bell,1000
+ *          failed=Thermostat,7000
+ *          event=Water,8000       ,5000
+ *          event=Fan,10000,2000    
+ *          event=Fertilizer,      6000,6000     
+ *          event=Location,1500,7500
+ *          priority=Location,                9     
+ *          priority=Rotate,8
+ *          event=Rotate, 8500, 8500
+ *          priority=Fertilizer,4
+ *          disaster=earthquake, 99999999999, 8888888888888
+ *          priority=earthquake, 1
+ * 
+ * Expected Output (until the first failed attempt at turning on the fans):
+ *      Unknown Event type detected. Event ignored: priortity
+ *      Unknown Event type detected. Event ignored: disaster
+ *      Plan Loaded 10 events. 0 classes disabled due to previous failures.
+ *      Fertilizer encountered an error. Restarting greenhouse and skipping Fertilizer in future runs.
+ *      If you wish to restart the greenhouse, type 'restart' and press enter.
+ *      If you wish to quit the greenhouse, type 'quit' and press enter.
+ *      Do not worry if restart/quit is typed across multiple lines, the greenhouse will restart or quit once the command is complete.
+ *      Plan Loaded 10 events. 1 classes disabled due to previous failures.
+ *      Fertilizer is disabled and will not be scheduled.
+ *      Thermostat turned ON
+ *      ALARM!!!
+ *      Light turned ON
+ *      Tray locations moved to ORIGINAL location
+ *      Light turned OFF
+ *      Watering machine ON
+ *      Light turned ON
+ *      Light turned OFF
+ *      Light turned ON
+ *      Light turned OFF
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      Thermostat failed.
+ *      Light turned ON
+ *      Watering machine ON
+ *      Watering machine OFF
+ *      Light turned OFF
+ *      Rotated tray orientation to NORTH-SOUTH
+ *      Tray locations moved to ALTERNATE location
+ *      Light turned ON
+ *      Fan controls attempted. Fan controls are disabled because Thermostat has failed. Fan is OFF.
+ *      
+ * Actual Output (until the first failed attempt at turning on the fans):
+ *      Unknown Event type detected. Event ignored: priortity
+ *      Unknown Event type detected. Event ignored: disaster
+ *      Plan Loaded 10 events. 0 classes disabled due to previous failures.
+ *      Fertilizer encountered an error. Restarting greenhouse and skipping Fertilizer in future runs.
+ *      If you wish to restart the greenhouse, type 'restart' and press enter.
+ *      If you wish to quit the greenhouse, type 'quit' and press enter.
+ *      Unknown Event type detected. Event ignored: priortity
+ *      Do not worry if restart/quit is typed across multiple lines, the greenhouse will restart or quit once the command is complete.
+ *      Unknown Event type detected. Event ignored: disaster
+ *      Plan Loaded 10 events. 1 classes disabled due to previous failures.
+ *      Fertilizer is disabled and will not be scheduled.
+ *      Thermostat turned ON
+ *      ALARM!!!
+ *      Light turned ON
+ *      Tray locations moved to ORIGINAL location
+ *      Light turned OFF
+ *      Watering machine ON
+ *      Light turned ON
+ *      Light turned OFF
+ *      Light turned ON
+ *      Light turned OFF
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      ALARM!!!
+ *      Thermostat failed.
+ *      Light turned ON
+ *      Watering machine ON
+ *      Watering machine OFF
+ *      Light turned OFF
+ *      Rotated tray orientation to NORTH-SOUTH
+ *      Tray locations moved to ALTERNATE location
+ *      Light turned ON
+ *      Fan controls attempted. Fan controls are disabled because Thermostat has failed. Fan is OFF.
+ * 
+ * Explanation: 
+ *      The difference between the expected and actual output is that the actual output has two additional lines indicating that the unknown event types were ignored in the second run. This is because the program is designed to check and ignore any unknown event types on each run rather than storing them in a list. This is less of a problem and more of an oversight. If the program was to expect large numbers of unknown event types a different handling method could be implemented in a furture iteration.
+ *      The rest of the output matches the expected output, indicating that the program handled the new input correctly and cleaned the data issues automatically. 
+ * 
+ * Case 3:
+ * Description: This test case checks if the program handles the absence of the plan file correctly.
+ * 
+ * Input: No plan file present in the directory.
+ * 
+ * Expected Output: 
+ *      greenhouse_plans.txt does not exist in the Greenhouse folder. Please ensure that the file is present in the correct location and run the greenhouse again.
+ * 
+ * Actual Output:
+ *     greenhouse_plans.txt does not exist in the Greenhouse folder. Please ensure that the file is present in the correct location and run the greenhouse again.
+ * 
+ * Explanation: The actual output matches the expected output, indicating that the program correctly handles the absence of the plan file by providing a user-friendly message and exiting gracefully.
+ * 
+ * Case 4:
+ * Description: This test case checks if the program handles user commands correctly.
+ * 
+ * Input: greenhouse_plans.txt
+ *      Contents of greenhouse_plans.txt:
+ *          priority=*,10
+ *          priority=Light,5
+ *          priority=Bell,1
+ *          priority=Thermostat,2
+ *          event=Thermostat,1000,*
+ *          event=Light,1000,1000
+ *          priority=Water,5
+ *          event=Water,3000,5000
+ *          test=Bell,1000
+ *          failed=Thermostat,7000
+ *          event=Water,8000,5000
+ *          event=Fan,10000,2000
+ *      User types "restart", "restart", and then "quit" in the console.
+ *
+ * Expected Output:
+ *     When the user types "restart", the program should print "User requested Restart of Greenhouse." and restart the greenhouse simulation.
+ *     When the user types "quit", the program should print "User requested Quit of Greenhouse." and exit the greenhouse simulation.
+ *     When the user types "quit", the program should print "User requested Quit of Greenhouse." and exit the greenhouse simulation.
+ * 
+ * Actual Output(*** are beside the relevant lines of output to indicate the user command that was entered):
+ *      Plan Loaded 7 events. 0 classes disabled due to previous failures.
+ *      If you wish to restart the greenhouse, type 'restart' and press enter.
+ *      If you wish to quit the greenhouse, type 'quit' and press enter.
+ *      Do not worry if restart/quit is typed across multiple lines, the greenhouse will restart or quit once the command is complete.
+ *      Thermostat turned ON
+ *      Light turned ON
+ *      ALARM!!!
+ *      Light turned OFF
+ * ***  restart
+ *      Light turned OFF
+ * ***  User requested Restart of Greenhouse.
+ *      Stopping all processes.
+ *      Restarting Greenhouse...
+ *      Plan Loaded 7 events. 0 classes disabled due to previous failures.
+ *      Thermostat turned ON
+ *      Light turned ON
+ *      ALARM!!!
+ *      Light turned OFF
+ *      Watering machine ON
+ *      Light turned ON
+ * ***  restart
+ *      Light turned OFF
+ * ***  User requested Restart of Greenhouse.
+ *      Stopping all processes.
+ *      Restarting Greenhouse...
+ *      Plan Loaded 7 events. 0 classes disabled due to previous failures.
+ *      ALARM!!!
+ *      Thermostat turned ON
+ *      Light turned ON
+ *      Light turned OFF
+ *      Light turned ON
+ *      Watering machine ON
+ *      Light turned OFF
+ * ***  quit
+ *      Light turned ON
+ *
+ * ***  User requested Quit of Greenhouse.
+ * 
+ * Explaination: The actual output matches the expected output, indicating that the program correctly handles user commands for restarting and quitting the greenhouse simulation.
+ * 
+ * Limitations: 
+ * The program does not handle any user input. Future improvements should allow the user to specify an alternate dataset and the seed for cross-validation as arguments to be passed into the program.
  */
 
  import java.io.*;  // Importing to use BufferedReader and FileReader for reading the plan file. Also importing IOException for handling file reading exceptions.
  import java.util.*; // Importquiting to use Set, HashSet, List, ArrayList, Map, HashMap, and Scanner for various data structures and user input handling.
 
-public class Greenhouse implements Runnable {  // Implementing Runnable interface to allow the greenhouse to run on one thread and a separeate thread to listen for user commands to run at the same time.
-    private final static Set<String> disabledClasses = new HashSet<>(); // Set of classes that can be disabled. This is used to prevent scheduling of events that have failed or are not needed.
+public class Greenhouse implements Runnable {  // Implementing Runnable interface to allow the greenhouse to run on one thread and a separate thread to listen for user commands to run at the same time.
 
     private static class DataEntry { // Creating a class to hold the data for each event in the plan file.
         String type;  // Will hold the type of the event (event, test, failed, priority).
@@ -58,6 +371,7 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
     private final Map<String, Integer> priorities = new HashMap<>();  // Will hold class names and their priorities. Populated by reading the plan file.
     private final List<Event> activeEvents = new ArrayList<>();  // Will hold the list of active events that have been scheduled and are currently running. Used to stop all events on restart.
     private Thread failureThread; // Will hold the thread that is responsible for scheduling a failure event. Used to stop the failure thread on restart.
+    private final static Set<String> disabledClasses = new HashSet<>(); // Set of classes that can be disabled. This is used to prevent scheduling of events that have failed or are not needed.
 
     public Greenhouse(String planFile) { // Constructor that takes the name of the plan file as an argument. This allows the user to specify a different plan file if desired in a future iteration.
         this.planFile = planFile;
@@ -68,9 +382,9 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
         start();
     }
 
-    private void readPlan() throws IOException {  // Method to read the plan file and create the greenhouse plan and priorities data structure.
+    private void readPlan() {  // Method to read the plan file and create the greenhouse plan and priorities data structure.
 
-        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(planFile))) { // Using try-with-resources to automatically close the BufferedReader when done.
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(planFile))) { // Using try catch block to handle simple errors in file reading to potentially let user be able to fix problems themselves.
             String line;  // Will hold each entry in the plan file as a seperate entry that will be parsed and added to the plan data structure.
 
             while ((line = bufferedReader.readLine()) != null) {  // read each line of the plan file and skip empty lines.
@@ -125,8 +439,14 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
                     default -> System.out.println("Unknown Event type detected. Event ignored: " + entryType); // If the entry type is not recognized, print a message to the console and ignore the line. This allows the user to add comments or other non-event lines to the plan file without causing errors.
                 }
             }
+            System.out.println("Plan Loaded " + plan.size() + " events. " + disabledClasses.size() + " classes disabled due to previous failures."); // Print a message indicating how many events were loaded and how many classes were disabled. This provides feedback to the user about the state of the greenhouse plan, to help the user identify any unexpected behaviors. 
+        } catch (FileNotFoundException e) {
+            System.out.println(planFile + " does not exist in the Greenhouse folder. Please ensure that the file is present in the correct location and run the greenhouse again."); // catch the FileNotFoundException and print a user friendly message to the console so that user can quickly fix the issue. 
+            System.exit(1); // exit the program
+        } catch (IOException e) {
+            System.out.println("There was a problem reading " + planFile + "."); // catch other types of IOException and print a message to the console identifying the area of the issue.
+            System.exit(1); // exit the program
         }
-        System.out.println("Plan Loaded " + plan.size() + " events. " + disabledClasses.size() + " classes disabled due to previous failures."); // Print a message indicating how many events were loaded and how many classes were disabled. This provides feedback to the user about the state of the greenhouse plan, to help the user identify any unexpected behaviors. 
     }
 
     private int resolvePriority(String className) { // Method to resolve the priority for a given class name. It checks to see if a * priority is set and changes it to the default priority of 10.
@@ -139,11 +459,7 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
         Event.hasFailed = false;     // Reset failure flag in all classes so that everything starts cleanly after restart
         plan.clear();                     // Clear the plan so we can reload it fresh on restart
 
-        try {  // calls readPlan method to populate the plan and priorities data structure fresh on each run.
-            readPlan();
-        } catch (IOException e) { // If there is an error reading the plan throws an error so that user can fix the plan file without having to call a technician.
-            throw new RuntimeException("Failed to read greenhouse plan: " + planFile, e);
-        }
+        readPlan(); // calls readPlan method to populate the plan and priorities data structure fresh on each run.
 
         for (DataEntry entry : plan) { // Goes through each entry in the plan to check if an entry was disabled on a prior run. If it was diasbled it will not add it to the schedule.
             if (entry.disabled) {
