@@ -267,7 +267,7 @@
  *      Fan controls attempted. Fan controls are disabled because Thermostat has failed. Fan is OFF.
  * 
  * Explanation: 
- *      The difference between the expected and actual output is that the actual output has two additional lines indicating that the unknown event types were ignored in the second run. This is because the program is designed to check and ignore any unknown event types on each run rather than storing them in a list. This is less of a problem and more of an oversight. If the program was to expect large numbers of unknown event types a different handling method could be implemented in a furture iteration.
+ *      The difference between the expected and actual output is that the actual output has two additional lines indicating that the unknown event types were ignored in the second run. This is because the program is designed to check and ignore any unknown event types on each run rather than storing them in a list. This is less of a problem and more of an oversight. If the program was to expect large numbers of unknown event types a different handling method could be implemented in a future iteration.
  *      The rest of the output matches the expected output, indicating that the program handled the new input correctly and cleaned the data issues automatically. 
  * 
  * Case 3:
@@ -399,7 +399,7 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
                 DataEntry entry = new DataEntry(); // Create a new DataEntry object to hold the data for this process.
                 entry.type = entryType;
 
-                switch (entryType) {  // Will sort the entries by type and apply the approriate logic to populate the DataEntry obeject and add it to the appropriate data structure.
+                switch (entryType) {  // Will sort the entries by type and apply the approriate logic to populate the DataEntry object and add it to the appropriate data structure.
                     case "priority" -> { // priority entries will only have class name and priority, so this splits it and adds it to the priorities map. So, that the thread can access them for scheduling priorities.
                         String[] priorityRestofEntry = restOfEntry.split(",");
                         priorities.put(priorityRestofEntry[0].trim(),
@@ -461,7 +461,7 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
 
         readPlan(); // calls readPlan method to populate the plan and priorities data structure fresh on each run.
 
-        for (DataEntry entry : plan) { // Goes through each entry in the plan to check if an entry was disabled on a prior run. If it was diasbled it will not add it to the schedule.
+        for (DataEntry entry : plan) { // Goes through each entry in the plan to check if an entry was disabled on a prior run. If it was disabled it will not add it to the schedule.
             if (entry.disabled) {
                 System.out.println(entry.className + " is disabled and will not be scheduled.");
                 continue;
@@ -522,7 +522,7 @@ private void scheduleFailure(DataEntry entry) { // Method to schedule a failure 
         for (Event event : activeEvents) { // cycles through the list of active events and stops each one. This allows the greenhouse to stop all events on restart without having to keep track of them individually.
             event.stopEvent(); 
         }
-        activeEvents.clear();  // Clear the list of active events so that it can be repopulated from scratch with the new events on restart. The disabled events list will not be cleared as they are stored in a seperate object. Remeber this is the process called for both an automatic restart and a user requented one.
+        activeEvents.clear();  // Clear the list of active events so that it can be repopulated from scratch with the new events on restart. The disabled events list will not be cleared as they are stored in a seperate object. Remeber this is the process called for both an automatic restart and a users requested one.
 
         if (failureThread != null && failureThread.isAlive()) { // Stop the failure thread if it is running, so that it does not interfere with the restart process or continue into the next cycle.
             failureThread.interrupt();
@@ -536,7 +536,7 @@ private void scheduleFailure(DataEntry entry) { // Method to schedule a failure 
         try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("If you wish to restart the greenhouse, type 'restart' and press enter.");
             System.out.println("If you wish to quit the greenhouse, type 'quit' and press enter.");
-            System.out.println("Do not worry if restart/quit is typed across multiple lines, the greenhouse will restart or quit once the command is complete."); // with how many messages this program generates it is unlikely that a user will be able to complete a command on a single line so this instruction is provided to reasure them.
+            System.out.println("Do not worry if restart/quit is typed across multiple lines, the greenhouse will restart or quit once the command is complete."); // with how many messages this program generates it is unlikely that a user will be able to complete a command on a single line so this instruction is provided to reassure them.
             while (true) {  // this loop will continue to listen for user commands until the program is terminated. So that there is a simple way for the user to restart or quit the greenhouse.
                 if (scanner.hasNextLine()) {
                     String cmd = scanner.nextLine().trim().toLowerCase();
