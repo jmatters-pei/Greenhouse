@@ -55,7 +55,7 @@
 public class Water extends Event {
     private boolean on = false;
     public Water(long initialDelay, long recurringDelay, int eventPriority) {
-        super(initialDelay, recuringDelay, eventPriority);
+        super(initialDelay, recurringDelay, eventPriority);
     }
 
     @Override

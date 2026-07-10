@@ -19,7 +19,7 @@
  *             - DataEntry class has instance variables for event type, class name, initial delay, recurring delay, priority, and disabled status.
  *      - Creates instance variables for the plan file name, a list of DataEntry objects, a map for priorities, a list of active events, and a thread for handling failure events.
  *      - Creates a Greenhouse constructor that only takes the plan file name as an argument.
- *      - Overrides the run method to start the greenhouse simulation. Som that the start method can be called by both run() and userComand restart() methods. 
+ *      - Overrides the run method to start the greenhouse simulation. So that the start method can be called by both run() and userComand restart() methods. 
  *      - Defines a readPlan method to read the plan file and populate the plan and priorities data structures. 
  *      - Posts a message indicating how many events were loaded and how many classes were disabled due to previous failures or an event unknown and ignored message.
  *      - Defines a resolvePriority method to determine the priority of an event based on its class name and the priorities map.
@@ -29,7 +29,7 @@
  *             - Uses reflection to dynamically create instances of event classes and start their threads, allowing for flexibility in adding new events without modifying the greenhouse code. This allows the user to add classes and only need to compile them rather than the entire greenhouse program.
  *                        - Uses a try catch block to handle any exceptions that may occur during event creation, then marking the event as disabled, adding it to the permanent list of disabled entries, and stopping all threads before restarting the greenhouse if necessary.
  *     - Defines a scheduleFailure method to schedule failure events on a separate thread.
- *             - The failure thread sleeps for the specified initial delay, sets the hasFailed flag to true, and creates and rings a bell 5 times to indicate a failure and then prints a message indentifying which event failed.
+ *             - The failure thread sleeps for the specified initial delay, sets the hasFailed flag to true, and creates and rings a bell 5 times to indicate a failure and then prints a message identifying which event failed.
  *     - Defines a restart method to stop all active events, clear the list of active events, interrupt the failure thread if it is running, and then call the start method to restart the greenhouse.
  *     - Defines a userCommand method to listen for user commands in the console to restart or quit the greenhouse. It creates and uses a Scanner to read user input. The only valid commands are "restart" and "quit". It checks for these commands and calls the appropriate method to restart or quit the greenhouse. If the command is not recognized, it prints a message to the console indicating that the command is unknown and provides instructions for restart or quit commands.
  *     - Defines a main method to create a Greenhouse, start the greenhouse thread, and call the userCommand method to listen for user commands.
@@ -346,14 +346,15 @@
  *
  * ***  User requested Quit of Greenhouse.
  * 
- * Explaination: The actual output matches the expected output, indicating that the program correctly handles user commands for restarting and quitting the greenhouse simulation.
+ * Explanation: The actual output matches the expected output, indicating that the program correctly handles user commands for restarting and quitting the greenhouse simulation.
  * 
  * Limitations: 
- * The program does not handle any user input. Future improvements should allow the user to specify an alternate dataset and the seed for cross-validation as arguments to be passed into the program.
+ * - The program relies on the presence of the plan file in the correct location. If the plan file is missing or incorrectly formatted, the program will not function as intended.
+ * - Future iterations could include more error handling with user friendly messages for how to fix more problems with the plan file. Also, a GUI could be implemented to allow for easier user interaction with the greenhouse.
  */
 
  import java.io.*;  // Importing to use BufferedReader and FileReader for reading the plan file. Also importing IOException for handling file reading exceptions.
- import java.util.*; // Importquiting to use Set, HashSet, List, ArrayList, Map, HashMap, and Scanner for various data structures and user input handling.
+ import java.util.*; // Importing to use Set, HashSet, List, ArrayList, Map, HashMap, and Scanner for various data structures and user input handling.
 
 public class Greenhouse implements Runnable {  // Implementing Runnable interface to allow the greenhouse to run on one thread and a separate thread to listen for user commands to run at the same time.
 
@@ -385,7 +386,7 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
     private void readPlan() {  // Method to read the plan file and create the greenhouse plan and priorities data structure.
 
         try (BufferedReader bufferedReader = new BufferedReader(new FileReader(planFile))) { // Using try catch block to handle simple errors in file reading to potentially let user be able to fix problems themselves.
-            String line;  // Will hold each entry in the plan file as a seperate entry that will be parsed and added to the plan data structure.
+            String line;  // Will hold each entry in the plan file as a separate entry that will be parsed and added to the plan data structure.
 
             while ((line = bufferedReader.readLine()) != null) {  // read each line of the plan file and skip empty lines.
                 line = line.trim(); // Trim whitespace so that if there is or is not whitespace the data is still readable.
@@ -466,7 +467,7 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
                 System.out.println(entry.className + " is disabled and will not be scheduled.");
                 continue;
             }
-            if (entry.type.equals("failed")) { // creates a seperate thread to schedule failure events so that the greenhouse can continue to run other events while waiting for the failure event to occur. This allows the greenhouse to continue to run other events while waiting for the failure event to occur.
+            if (entry.type.equals("failed")) { // creates a separate thread to schedule failure events so that the greenhouse can continue to run other events while waiting for the failure event to occur. This allows the greenhouse to continue to run other events while waiting for the failure event to occur.
                 scheduleFailure(entry);
                 continue;
             }
@@ -485,7 +486,7 @@ public class Greenhouse implements Runnable {  // Implementing Runnable interfac
                     for (Event event : activeEvents) { // Stop all active events before restarting the greenhouse as required by the instructions. This allows the greenhouse to stop all events on restart without having to keep track of them individually.
                         event.stopEvent();
                     }
-                    activeEvents.clear(); // Clear the list of active events so that it can be repopulated from scratch with the new events on restart. The disabled events list will not be cleared as they are stored in a seperate object.
+                    activeEvents.clear(); // Clear the list of active events so that it can be repopulated from scratch with the new events on restart. The disabled events list will not be cleared as they are stored in a separate object.
 
                     if (failureThread != null && failureThread.isAlive()) { // Stop the failure thread if it is running, so that it does not interfere with the restart process or continue into the next cycle.
                         failureThread.interrupt();
@@ -522,7 +523,7 @@ private void scheduleFailure(DataEntry entry) { // Method to schedule a failure 
         for (Event event : activeEvents) { // cycles through the list of active events and stops each one. This allows the greenhouse to stop all events on restart without having to keep track of them individually.
             event.stopEvent(); 
         }
-        activeEvents.clear();  // Clear the list of active events so that it can be repopulated from scratch with the new events on restart. The disabled events list will not be cleared as they are stored in a seperate object. Remeber this is the process called for both an automatic restart and a users requested one.
+        activeEvents.clear();  // Clear the list of active events so that it can be repopulated from scratch with the new events on restart. The disabled events list will not be cleared as they are stored in a separate object. Remeber this is the process called for both an automatic restart and a users requested one.
 
         if (failureThread != null && failureThread.isAlive()) { // Stop the failure thread if it is running, so that it does not interfere with the restart process or continue into the next cycle.
             failureThread.interrupt();

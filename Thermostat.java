@@ -65,7 +65,7 @@ public class Thermostat extends Event {
         if (hasFailed) {
             System.out.println("Thermostat failed");
             on = false; // turn off the thermostat if it has failed
-            stop(); // stop the thermostat from running if it has failed
+            isRunning = false; // stop this event from running if it has failed
 
         } 
         else {
