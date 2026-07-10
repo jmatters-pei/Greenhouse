@@ -1,0 +1,17 @@
+priority=*,10
+priority=Light,5
+priority=Bell,1
+priority=Thermostat,2
+event=Thermostat,1000,*
+event=Light,1000,1000
+priority=Water,5
+event=Water,3000,5000
+test=Bell,1000
+failed=Thermostat,7000
+event=Water,8000,5000
+event=Fan,10000,2000
+event=Bar,6000,6000
+event=Location, 1500, 7500
+priority=Location, 9
+priority=Rotate, 8
+event=Rotate, 8500, 8500
